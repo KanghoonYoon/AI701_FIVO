@@ -2,13 +2,16 @@ import numpy as np
 import torch as th
 from torch import nn as nn
 from torch.nn import functional as F
+from torch.autograd import Variable
 
 
 class VRNN(nn.Module):
 
-    def __init__(self):
+    def __init__(self, config):
 
         super(VRNN, self).__init__()
+
+        self.h_dim = config.h_dim
 
         self.prior_mu = nn.Sequential(nn.Linear(), nn.ReLU(),
                                        nn.Linear(), nn.ReLU())
@@ -30,24 +33,48 @@ class VRNN(nn.Module):
 
     def forward(self, x):
 
-        h_prev = th.randn()
+        Z_t = []
+        PRIOR_mu = []
+        PRIOR_std = []
+        ENC_mu = []
+        ENC_std = []
+        DEC_mu = []
+        DEC_std = []
+
+        h = th.randn((x.size(0), self.h_dim))
 
         for t in range(x.size(1)):
 
-            mu_prior = self.prior_mu(h_prev[-1])
-            std_prior = self.prior_std(h_prev[-1])
+            prior_mu = self.prior_mu(h[-1])
+            prior_std = self.prior_std(h[-1])
 
-            z_prior = sample(mu_prior, mu_std)
+            z_prior = self.reparam_sample(prior_mu, prior_std)
 
-            mu = self.encoder_mu(th.concat([h_prev[-1], z_prior], dim=-1))
-            std = self.encoder_std(th.concat([h_prev[-1], z_prior], dim=-1))
+            z_mu = self.encoder_mu(th.concat([h[-1], z_prior], dim=-1))
+            z_std = self.encoder_std(th.concat([h[-1], z_prior], dim=-1))
+
+            z_t = self.reparam_sample(z_mu, z_std)
+
+            x_hat_mu = self.decoder_mu(th.concat([h[:, -1, :], z_t], dim=-1))
+            x_hat_std = self.decoder_std(th.concat([h[:, -1, :]], dim=-1))
+
+            h, _ = self.rnn(th.concat([x[:, t], z_t], dim=-1))
+
+            PRIOR_mu.append(prior_mu)
+            PRIOR_std.append(prior_std)
+            ENC_mu.append(z_mu)
+            ENC_mu.append(z_std)
+            DEC_mu.append(x_hat_mu)
+            DEC_std.append(x_hat_std)
+
+        return Z_t, PRIOR_mu, PRIOR_std, \
+               ENC_mu, ENC_std, DEC_mu, DEC_std
 
 
-            h_next, _ = nn.rnn(th.concat([x_t, z_prior], dim=-1))
+    def reparam_sample(self, mu, std):
 
-            z_posterior = self.decoder(th.concat([h_prior, x_t], dim=-1))
+        eps = th.FloatTensor(std.size(0)).normal_()
+        eps = Variable(eps)
 
-
-
-
+        return eps.mul(std).add_(mu)
 
