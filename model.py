@@ -10,20 +10,42 @@ class VRNN(nn.Module):
 
         super(VRNN, self).__init__()
 
-        self.prior_net = nn.Sequential()
-        self.encoder = nn.Sequential()
+        self.prior_mu = nn.Sequential(nn.Linear(), nn.ReLU(),
+                                       nn.Linear(), nn.ReLU())
+        self.prior_std = nn.Sequential(nn.Linear(), nn.ReLU(),
+                                      nn.Linear(), nn.Softplus())
+
+        self.encoder_mu = nn.Sequential(nn.Linear(), nn.ReLU(),
+                                       nn.Linear(), nn.ReLU())
+        self.encoder_std = nn.Sequential(nn.Linear(), nn.ReLU(),
+                                       nn.Linear(), nn.Softplus())
+
         self.rnn = nn.GRU()
-        self.decoder = nn.Sequential()
 
-    def forward(self):
+        self.decoder_mu = nn.Sequential(nn.Linear(), nn.ReLU(),
+                                       nn.Linear(), nn.ReLU())
+        self.decoder_std =  nn.Sequential(nn.Linear(), nn.ReLU(),
+                                       nn.Linear(), nn.Softplus())
 
-        h_prior = th.randn()
 
-        z_prior = self.prior_net(h_prior)
-        x_t = self.encoder(th.concat([h_prior, z_prior], dim=-1))
-        h_next, _ = nn.rnn(th.concat([x_t, z_prior], dim=-1))
+    def forward(self, x):
 
-        z_posterior = self.decoder(th.concat([h_prior, x_t], dim=-1))
+        h_prev = th.randn()
+
+        for t in range(x.size(1)):
+
+            mu_prior = self.prior_mu(h_prev[-1])
+            std_prior = self.prior_std(h_prev[-1])
+
+            z_prior = sample(mu_prior, mu_std)
+
+            mu = self.encoder_mu(th.concat([h_prev[-1], z_prior], dim=-1))
+            std = self.encoder_std(th.concat([h_prev[-1], z_prior], dim=-1))
+
+
+            h_next, _ = nn.rnn(th.concat([x_t, z_prior], dim=-1))
+
+            z_posterior = self.decoder(th.concat([h_prior, x_t], dim=-1))
 
 
 
