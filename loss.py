@@ -1,7 +1,8 @@
 import torch as th
 
 
-def ELBO(prior_mu, prior_std, enc_mu, enc_std, seq_len, device='cuda', nll_type = 'bernoulli'):
+def ELBO(x, prior_mu, prior_std, enc_mu, enc_std, dec_mu, dec_std,
+         seq_len, device='cuda', nll_type = 'bernoulli'):
 
     kld_loss = th.tensor([0], device)
     nll_loss = th.tensor([0], device)
@@ -9,8 +10,11 @@ def ELBO(prior_mu, prior_std, enc_mu, enc_std, seq_len, device='cuda', nll_type 
     for t in range(seq_len):
 
         kld_loss += _kld_gauss(enc_mu[t], enc_std[t], prior_mu[t], prior_std[t])
-        nll_loss += _nll_loss()
+        nll_loss += _nll_loss(x=x, params=(dec_mu, dec_std), nll_type=nll_type)
 
+    ELBO = kld_loss + nll_loss
+
+    return ELBO, kld_loss, nll_loss
 
 def IWAE():
 
@@ -47,4 +51,4 @@ def _nll_loss(x, params:list, nll_type):
 
     elif nll_type == "gauss":
 
-        pass
+        return NotImplementedError
