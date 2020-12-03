@@ -1,6 +1,6 @@
 import os
 
-
+PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.realpath(__file__)))
 
 def mk_dir(path):
 
@@ -8,6 +8,8 @@ def mk_dir(path):
     while 1:
 
         dir_name = 'result/' + path + str(num)
+        dir_name = os.path.join(PROJECT_ROOT, 'result', path + str(num))
+
         if os.path.isdir(dir_name):
             num += 1
         else:
