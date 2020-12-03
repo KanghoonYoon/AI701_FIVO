@@ -59,7 +59,7 @@ if __name__ == "__main__":
         RANGE_LOSS = 0
 
         for x in trainloader:
-            loss, kld, nll = model.fit(x, objective=config.loss_type, device=device)
+            loss, kld, nll = model.fit(x, loss_type=config.loss_type, device=device)
 
             RANGE_LOSS += loss.item()
 
