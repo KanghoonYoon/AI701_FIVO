@@ -8,7 +8,7 @@ def mk_dir(path):
     while 1:
 
         dir_name = 'result/' + path + str(num)
-        if os.path.isdir():
+        if os.path.isdir(dir_name):
             num += 1
         else:
             os.mkdir(dir_name)

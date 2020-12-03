@@ -2,7 +2,7 @@ import torch as th
 
 
 def ELBO(x, prior_mu, prior_std, enc_mu, enc_std, dec_mu, dec_std,
-         seq_len, device='cuda', nll_type = 'bernoulli'):
+         seq_len, device='cuda', nll_type='bernoulli'):
 
     kld_loss = th.tensor([0], device)
     nll_loss = th.tensor([0], device)
