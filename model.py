@@ -67,8 +67,6 @@ class VRNN(nn.Module):
             prior_mu = self.prior_mu(h[:,-1,:])
             prior_std = self.prior_std(h[:,-1,:])
 
-            z_prior = self.reparam_sample(prior_mu, prior_std)
-
             z_mu = self.encoder_mu(th.cat([h[:, -1, :], x_t], dim=-1))
             z_std = self.encoder_std(th.cat([h[:, -1, :], x_t], dim=-1))
 
@@ -83,7 +81,7 @@ class VRNN(nn.Module):
             _, h = self.rnn(th.cat([x_t, z_t], dim=-1).unsqueeze(dim=1))
 
             loss_t, kld, nll = ELBO(x[:, t, :], prior_mu, prior_std, z_mu, z_std, x_hat_mu, dec_std=None,
-                                  device=self.device , nll_type=self.nll_type)
+                                  device=self.device, nll_type=self.nll_type)
 
             loss += loss_t
 
