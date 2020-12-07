@@ -17,6 +17,7 @@ class VRNN(nn.Module):
         self.input_dim = config.input_dim
         self.h_dim = config.h_dim
         self.z_dim = config.z_dim
+        self.seq_len = config.seq_len
 
         self.prior_mu = nn.Sequential(nn.Linear(self.h_dim, self.h_dim), nn.ReLU(),
                                        nn.Linear(self.h_dim, self.z_dim), nn.ReLU())
@@ -33,7 +34,7 @@ class VRNN(nn.Module):
 
 
         self.decoder_mu = nn.Sequential(nn.Linear(self.h_dim + self.z_dim, self.h_dim), nn.ReLU(),
-                                       nn.Linear(self.h_dim, self.input_dim), nn.ReLU())
+                                       nn.Linear(self.h_dim, self.input_dim), nn.Sigmoid())
 
         if self.nll_type == "gauss":
             self.decoder_std =  nn.Sequential(nn.Linear(), nn.ReLU(),
@@ -68,7 +69,7 @@ class VRNN(nn.Module):
 
             x_hat_mu = self.decoder_mu(th.cat([h[:, -1, :], z_t], dim=-1))
 
-            if self.nll_type == "gauss":
+            if self.nll_type == "gaussian":
                 x_hat_std = self.decoder_std(th.cat([h[:, -1, :]], dim=-1))
 
             x_t = self.phi_x(x[:, t, :])
@@ -77,7 +78,7 @@ class VRNN(nn.Module):
             PRIOR_mu.append(prior_mu)
             PRIOR_std.append(prior_std)
             ENC_mu.append(z_mu)
-            ENC_mu.append(z_std)
+            ENC_std.append(z_std)
             DEC_mu.append(x_hat_mu)
             if self.nll_type == "gauss":
                 DEC_std.append(x_hat_std)
@@ -101,7 +102,7 @@ class VRNN(nn.Module):
 
         if loss_type == "ELBO":
             loss, kld, nll = ELBO(batch, prior_mu=prior_mu, prior_std=prior_std, enc_mu=enc_mu, enc_std=enc_std,
-                                  dec_mu=dec_mu, dec_std=dec_std, seq_len=self.seq_len, device=device, nll_type =self.nll_type)
+                                  dec_mu=dec_mu, dec_std=dec_std, device=device, nll_type =self.nll_type)
 
         elif loss_type == "IWAE":
             print("NOT IMPLEMENTED ERROR")
@@ -111,7 +112,7 @@ class VRNN(nn.Module):
 
         if train:
             self.optimizer.zero_grad()
-            loss.bacwkard()
-            self.optimzier.step()
+            loss.backward()
+            self.optimizer.step()
 
         return loss, kld, nll

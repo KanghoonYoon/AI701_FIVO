@@ -11,8 +11,19 @@ def read_data(path):
     return data
 
 
+def calculate_mean(data):
 
-def data2seq(data, split='train', min_note=21, max_note=108):
+    MEAN = 0
+    tot_timesteps = 0
+    for i in range(len(data)):
+        mat, num_timesteps = pianoroll2array(data[i])
+
+        tot_timesteps += num_timesteps
+        np.mean(mat)
+
+    return MEAN
+
+def data2seq(data, split='train', seq_len=10, min_note=21, max_note=108):
 
     """
     sparse pianorolls -> dense numpy array [num_timesteps, num_notes]
@@ -24,13 +35,26 @@ def data2seq(data, split='train', min_note=21, max_note=108):
     """
     data = data[split]
 
+    # mean = calculate_mean(data)
+
     train_seq = []
     test_seq = []
 
+    idx = 0
     for i in range(len(data)):
-        seq, num_timesteps = pianoroll2array(data[i])
-        train_seq.append((i, seq[:, :-1]))
-        test_seq.append((i, seq[:, 1:]))
+        mat, num_timesteps = pianoroll2array(data[i])
+
+        train_seq.append((i, mat[:-1, :]))
+        test_seq.append((i, mat[1:, :]))
+
+
+        # train_seq.append((idx, mat[:-1, :]))
+        # test_seq.append((idx, mat[1:, :]))
+
+        # for t in range(num_timesteps-seq_len):
+        #     train_seq.append((idx, mat[t:t+seq_len, :]))
+        #     test_seq.append((idx, mat[t+1:t+seq_len, :]))
+        #     idx+=1
 
     return train_seq, test_seq
 
