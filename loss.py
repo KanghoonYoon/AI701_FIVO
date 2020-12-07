@@ -6,15 +6,20 @@ def ELBO(x, prior_mu, prior_std, enc_mu, enc_std, dec_mu, dec_std, device='cuda'
     kld_loss = th.tensor([0.]).to(device)
     nll_loss = th.tensor([0.]).to(device)
 
-    for t in range(x.size(1)):
+    # for t in range(x.size(1)):
+    #
+    #     kld_loss += _kld_gauss(enc_mu[t], enc_std[t], prior_mu[t], prior_std[t])
+    #
+    #     if nll_type == 'bernoulli':
+    #         nll_loss += _nll_loss(x=x[:, t, :], params=dec_mu[t], nll_type=nll_type)
+    #
+    #     elif nll_type == "gaussian":
+    #         nll_loss += nll_loss(x=x[:, t, :], params=(dec_mu[t], dec_std[t]), nll_type=nll_type)
 
-        kld_loss += _kld_gauss(enc_mu[t], enc_std[t], prior_mu[t], prior_std[t])
+    kld_loss += _kld_gauss(enc_mu, enc_std, prior_mu, prior_std)
 
-        if nll_type == 'bernoulli':
-            nll_loss += _nll_loss(x=x[:, t, :], params=dec_mu[t], nll_type=nll_type)
-
-        elif nll_type == "gaussian":
-            nll_loss += nll_loss(x=x[:, t, :], params=(dec_mu[t], dec_std[t]), nll_type=nll_type)
+    if nll_type == 'bernoulli':
+        nll_loss += _nll_loss(x=x, params=dec_mu, nll_type=nll_type)
 
     ELBO = kld_loss + nll_loss
 

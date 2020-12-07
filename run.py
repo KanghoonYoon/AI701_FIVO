@@ -13,13 +13,13 @@ if __name__ == "__main__":
     parser.add_argument("--data", type=str, default='piano')
     parser.add_argument("--model", type=str, default='VRNN')
     parser.add_argument("--loss_type", type=str, default='ELBO')
+    parser.add_argument("--nll_type", type=str, default="bernoulli")
     parser.add_argument("--save_name", type=str, default='')
 
-    parser.add_argument("--decoder_dist", type=str, default="bernoulli")
 
-    parser.add_argument("--input_dim", type=int, default=88) ## max_note - min_note - train_split(108 - 21 - 1 = 87)
-    parser.add_argument("--h_dim", type=int, default=64)
-    parser.add_argument("--z_dim", type=int, default=32)
+    parser.add_argument("--input_dim", type=int, default=88) ## max_note - min_note - train_split(108 - 21 = 88)
+    parser.add_argument("--h_dim", type=int, default=32)
+    parser.add_argument("--z_dim", type=int, default=16)
     parser.add_argument("--seq_len", type=int, default=10)
 
     parser.add_argument("--epochs", type=int, default=100)
@@ -32,6 +32,8 @@ if __name__ == "__main__":
     device = th.device('cuda' if th.cuda.is_available() else 'cpu')
     dir_name = mk_dir(config.data + 'experiment')
 
+    print(config, "DEVICE", device)
+
 
     if config.data == 'piano':
         data = read_data('data/pianorolls/piano-midi.de.pkl')
@@ -41,11 +43,11 @@ if __name__ == "__main__":
 
 
     if config.model == "VRNN":
-        model = VRNN(config)
+        model = VRNN(config, device)
     else:
         print("NotImplementedERROR")
 
-
+    model.to(device)
 
     epoch=0
 
@@ -59,19 +61,23 @@ if __name__ == "__main__":
 
         for idx, train_mat in train_loader:
 
-            x = th.FloatTensor(train_mat, device=device)
+            if idx % 20 == 0:
+                print("{}/{}".format(idx+1, len(train_data)))
+
+            x = th.FloatTensor(train_mat).to(device)
             x = x.unsqueeze(dim=0) ## 1 batch tensor
-            loss, kld, nll = model.fit(x, loss_type=config.loss_type, device=device)
+            loss, kld, nll = model.fit(x)
 
             RANGE_LOSS1 += loss.item()
             RANGE_LOSS2 += kld.item()
             RANGE_LOSS3 += nll.item()
 
-        if epoch%config.prt_evry:
+        if (epoch%config.prt_evry) == 0:
+            print("-------------------------------------------------------------------------------------")
             print("Training LOSS:{}, KLD:{}, NLL:{}".format(RANGE_LOSS1/len(train_data)*config.batch_size,
                                                             RANGE_LOSS2/len(train_data)*config.batch_size,
                                                             RANGE_LOSS3/len(train_data)*config.batch_size))
-        if epoch%config.save_evry:
+        if (epoch%config.save_evry) == 0:
             th.save(model, dir_name + '/' + str(config.model) + config.save_name + '.pth')
 
         epoch += 1
