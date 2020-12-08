@@ -19,10 +19,10 @@ def IWAE(x, prior_mu, prior_std, enc_mu, enc_std, dec_mu, dec_std, n_samples, de
     nll_loss = _nll_loss(x=x.repeat(n_samples, 1), params=dec_mu, nll_type=nll_type) # batch * n_samples
     kld_loss = _kld_gauss(enc_mu, enc_std, prior_mu, prior_std) # batch * 1
 
-    log_weight = -nll_loss - kld_loss
+    log_weight = -nll_loss - kld_loss # batch * n_samples
     weight = F.softmax(log_weight)
 
-    loss = -th.sum(weight * log_weight, dim=0)
+    loss = -th.mean(weight * log_weight, dim=0)
 
     return loss, kld_loss, th.sum(weight*nll_loss)
 
