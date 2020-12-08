@@ -12,7 +12,8 @@ if __name__ == "__main__":
 
     parser.add_argument("--data", type=str, default='piano')
     parser.add_argument("--model", type=str, default='VRNN')
-    parser.add_argument("--loss_type", type=str, default='ELBO')
+    parser.add_argument("--loss_type", type=str, default='IWAE')
+    parser.add_argument("--n_samples", type=int, default=4)
     parser.add_argument("--nll_type", type=str, default="bernoulli")
     parser.add_argument("--save_name", type=str, default='')
 

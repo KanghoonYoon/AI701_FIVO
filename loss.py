@@ -1,33 +1,30 @@
 import torch as th
 from torch import nn as nn
+from torch.nn import functional as F
 
 def ELBO(x, prior_mu, prior_std, enc_mu, enc_std, dec_mu, dec_std, device='cuda', nll_type='bernoulli'):
 
-    kld_loss = th.tensor([0.]).to(device)
-    nll_loss = th.tensor([0.]).to(device)
 
-    # for t in range(x.size(1)):
-    #
-    #     kld_loss += _kld_gauss(enc_mu[t], enc_std[t], prior_mu[t], prior_std[t])
-    #
-    #     if nll_type == 'bernoulli':
-    #         nll_loss += _nll_loss(x=x[:, t, :], params=dec_mu[t], nll_type=nll_type)
-    #
-    #     elif nll_type == "gaussian":
-    #         nll_loss += nll_loss(x=x[:, t, :], params=(dec_mu[t], dec_std[t]), nll_type=nll_type)
-
-    kld_loss += _kld_gauss(enc_mu, enc_std, prior_mu, prior_std)
+    kld_loss = _kld_gauss(enc_mu, enc_std, prior_mu, prior_std)
 
     if nll_type == 'bernoulli':
-        nll_loss += _nll_loss(x=x, params=dec_mu, nll_type=nll_type)
+        nll_loss = _nll_loss(x=x, params=dec_mu, nll_type=nll_type)
 
     ELBO = kld_loss + nll_loss
 
     return ELBO, kld_loss, nll_loss
 
-def IWAE():
+def IWAE(x, prior_mu, prior_std, enc_mu, enc_std, dec_mu, dec_std, n_samples, device='cuda', nll_type='bernoulli'):
 
-    pass
+    nll_loss = _nll_loss(x=x.repeat(n_samples, 1), params=dec_mu, nll_type=nll_type) # batch * n_samples
+    kld_loss = _kld_gauss(enc_mu, enc_std, prior_mu, prior_std) # batch * 1
+
+    log_weight = -nll_loss - kld_loss
+    weight = F.softmax(log_weight)
+
+    loss = -th.sum(weight * log_weight, dim=0)
+
+    return loss, kld_loss, th.sum(weight*nll_loss)
 
 
 def FIVO():
@@ -52,11 +49,9 @@ def _nll_loss(x, params, nll_type):
     :return: nll_loss
     """
 
-    assert len(params) < 3
-
     if nll_type == "bernoulli":
 
-        return nn.BCELoss()(params, x)
+        return th.sum(-x*th.log(params) - (1-x)*th.log(1-params), dim=1)
 
     elif nll_type == "gauss":
 

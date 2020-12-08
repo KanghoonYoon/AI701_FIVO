@@ -15,8 +15,10 @@ class VRNN(nn.Module):
         self.device = device
 
         self.loss_type = config.loss_type
+        self.n_samples = config.n_samples
         self.nll_type = config.nll_type
 
+        self.batch_size = config.batch_size
         self.input_dim = config.input_dim
         self.h_dim = config.h_dim
         self.z_dim = config.z_dim
@@ -49,6 +51,8 @@ class VRNN(nn.Module):
     def forward(self, x):
 
         loss = 0
+        kld = 0
+        nll = 0
 
         Z_t = []
         PRIOR_mu = []
@@ -58,7 +62,8 @@ class VRNN(nn.Module):
         DEC_mu = []
         DEC_std = []
 
-        h = Variable(th.randn((x.size(0), 1, self.h_dim)).to(self.device))
+
+        h = Variable(th.randn((self.batch_size, 1, self.h_dim)).to(self.device))
 
         for t in range(x.size(1)):
 
@@ -72,18 +77,25 @@ class VRNN(nn.Module):
 
             z_t = self.reparam_sample(z_mu, z_std)
 
-            x_hat_mu = self.decoder_mu(th.cat([h[:, -1, :], z_t], dim=-1))
+            x_hat_mu = self.decoder_mu(th.cat([h[:, -1 , :].repeat(self.n_samples, 1), z_t], dim=-1))
 
             if self.nll_type == "gaussian":
                 x_hat_std = self.decoder_std(th.cat([h[:, -1, :]], dim=-1))
 
+            if self.loss_type == "ELBO":
+                loss_t, kld_t, nll_t = ELBO(x[:, t, :], prior_mu, prior_std, z_mu, z_std, x_hat_mu, dec_std=None,
+                                      device=self.device, nll_type=self.nll_type)
 
-            _, h = self.rnn(th.cat([x_t, z_t], dim=-1).unsqueeze(dim=1))
+            elif self.loss_type == "IWAE":
+                loss_t, kld_t, nll_t = IWAE(x[:, t, :], prior_mu, prior_std, z_mu, z_std, x_hat_mu, dec_std=None,
+                                      n_samples=self.n_samples, device=self.device, nll_type=self.nll_type)
 
-            loss_t, kld, nll = ELBO(x[:, t, :], prior_mu, prior_std, z_mu, z_std, x_hat_mu, dec_std=None,
-                                  device=self.device, nll_type=self.nll_type)
+            _, h = self.rnn(th.cat([x_t, th.mean(z_t.reshape(self.batch_size, self.n_samples, self.z_dim), dim=1)], dim=-1).unsqueeze(dim=1))
+
 
             loss += loss_t
+            kld += kld_t
+            nll += nll_t
 
             Z_t.append(z_t)
             PRIOR_mu.append(prior_mu)
@@ -101,10 +113,13 @@ class VRNN(nn.Module):
 
     def reparam_sample(self, mu, std):
 
-        eps = th.FloatTensor(std.size(0)).normal_().to(self.device)
+        mu = mu.repeat(self.batch_size, self.n_samples, 1)
+        std = std.repeat(self.batch_size, self.n_samples, 1)
+        eps = th.randn_like(mu)
         eps = Variable(eps)
+        z = eps.mul(std).add_(mu)
 
-        return eps.mul(std).add_(mu)
+        return z.reshape(self.batch_size*self.n_samples, self.z_dim)
 
 
     def fit(self, batch, loss_type="ELBO", train=True, device='cuda'):
