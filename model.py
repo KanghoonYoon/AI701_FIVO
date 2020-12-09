@@ -75,23 +75,31 @@ class VRNN(nn.Module):
             z_mu = self.encoder_mu(th.cat([h[:, -1, :], x_t], dim=-1))
             z_std = self.encoder_std(th.cat([h[:, -1, :], x_t], dim=-1))
 
-            z_t = self.reparam_sample(z_mu, z_std)
+            while 1:
 
-            x_hat_mu = self.decoder_mu(th.cat([h[:, -1 , :].repeat(self.n_samples, 1), z_t], dim=-1))
+                z_t = self.reparam_sample(z_mu, z_std)
 
-            if self.nll_type == "gaussian":
-                x_hat_std = self.decoder_std(th.cat([h[:, -1, :]], dim=-1))
+                x_hat_mu = self.decoder_mu(th.cat([h[:, -1 , :].repeat(self.n_samples, 1), z_t], dim=-1))
 
-            if self.loss_type == "ELBO":
-                loss_t, kld_t, nll_t = ELBO(x[:, t, :], prior_mu, prior_std, z_mu, z_std, x_hat_mu, dec_std=None,
-                                      device=self.device, nll_type=self.nll_type)
+                if self.nll_type == "gaussian":
+                    x_hat_std = self.decoder_std(th.cat([h[:, -1, :]], dim=-1))
 
-            elif self.loss_type == "IWAE":
-                loss_t, kld_t, nll_t = IWAE(x[:, t, :], prior_mu, prior_std, z_mu, z_std, x_hat_mu, dec_std=None,
-                                      n_samples=self.n_samples, device=self.device, nll_type=self.nll_type)
+                if self.loss_type == "ELBO":
+                    loss_t, kld_t, nll_t = ELBO(x[:, t, :], prior_mu, prior_std, z_mu, z_std, x_hat_mu, dec_std=None,
+                                          device=self.device, nll_type=self.nll_type)
+
+                elif self.loss_type == "IWAE":
+                    loss_t, kld_t, nll_t = IWAE(x[:, t, :], prior_mu, prior_std, z_mu, z_std, x_hat_mu, dec_std=None,
+                                          n_samples=self.n_samples, device=self.device, nll_type=self.nll_type)
+
+                elif self.loss_type == "FIVO":
+                    loss_t, kld_t, nll_t, resample = FIVO(x[:, t, :], prior_mu, prior_std, z_mu, z_std, x_hat_mu, dec_std=None,
+                                                n_samples=self.n_samples, device=self.device, nll_type=self.nll_type)
+
+                if not resample:
+                    break
 
             _, h = self.rnn(th.cat([x_t, th.mean(z_t.reshape(self.batch_size, self.n_samples, self.z_dim), dim=1)], dim=-1).unsqueeze(dim=1))
-
 
             loss += loss_t
             kld += kld_t

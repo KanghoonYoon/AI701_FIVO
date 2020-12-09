@@ -59,7 +59,7 @@ if __name__ == "__main__":
         for idx, train_mat in train_loader:
 
             if idx % 20 == 0:
-                print("{}/{}".format(idx + 1, len(train_data)))
+                print("{}/{} BATCH".format(idx + 1, len(train_data)))
 
             x = th.FloatTensor(train_mat).to(device)
             x = x.unsqueeze(dim=0)  ## 1 batch tensor
@@ -71,6 +71,7 @@ if __name__ == "__main__":
 
         if (epoch % config.prt_evry) == 0:
             print("-------------------------------------------------------------------------------------")
+            print("{} EPOCH".format(epoch))
             print("Training LOSS:{}, KLD:{}, NLL:{}".format(-RANGE_LOSS1,
                                                             RANGE_LOSS2,
                                                             RANGE_LOSS3))

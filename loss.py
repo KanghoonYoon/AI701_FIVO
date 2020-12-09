@@ -10,26 +10,45 @@ def ELBO(x, prior_mu, prior_std, enc_mu, enc_std, dec_mu, dec_std, device='cuda'
     if nll_type == 'bernoulli':
         nll_loss = _nll_loss(x=x, params=dec_mu, nll_type=nll_type)
 
-    ELBO = kld_loss + nll_loss
+    loss = kld_loss + nll_loss
 
-    return ELBO, kld_loss, nll_loss
+    return loss, kld_loss, nll_loss
 
 def IWAE(x, prior_mu, prior_std, enc_mu, enc_std, dec_mu, dec_std, n_samples, device='cuda', nll_type='bernoulli'):
 
     nll_loss = _nll_loss(x=x.repeat(n_samples, 1), params=dec_mu, nll_type=nll_type) # batch * n_samples
     kld_loss = _kld_gauss(enc_mu, enc_std, prior_mu, prior_std) # batch * 1
 
-    log_weight = -nll_loss - kld_loss # batch * n_samples
+    log_weight = (nll_loss + kld_loss) # batch * n_samples
     weight = F.softmax(log_weight)
 
-    loss = -th.mean(weight * log_weight, dim=0)
+    loss = th.sum(weight * log_weight, dim=0)
 
     return loss, kld_loss, th.sum(weight*nll_loss)
 
 
-def FIVO():
+def FIVO(x, prior_mu, prior_std, enc_mu, enc_std, dec_mu, dec_std, n_samples, device='cuda', nll_type='bernoulli'):
 
-    pass
+
+    resample = False
+
+    nll_loss = _nll_loss(x=x.repeat(n_samples, 1), params=dec_mu, nll_type=nll_type)  # batch * n_samples
+    kld_loss = _kld_gauss(enc_mu, enc_std, prior_mu, prior_std)  # batch * 1
+
+    log_weight = (nll_loss + kld_loss)  # batch * n_samples
+    weight = F.softmax(log_weight)
+
+    loss = th.sum(weight * log_weight, dim=0)
+
+    ESS = 1/th.sum(weight**2)
+
+    if ESS < n_samples/2:
+        resample = True
+
+    return loss, kld_loss, th.sum(weight * nll_loss), resample
+
+
+
 
 
 def _kld_gauss(mu1, std1, mu2, std2):
@@ -51,7 +70,7 @@ def _nll_loss(x, params, nll_type):
 
     if nll_type == "bernoulli":
 
-        return th.sum(-x*th.log(params) - (1-x)*th.log(1-params), dim=1)
+        return th.mean(-x*th.log(params) - (1-x)*th.log(1-params), dim=1)
 
     elif nll_type == "gauss":
 
