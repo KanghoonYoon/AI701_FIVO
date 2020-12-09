@@ -76,7 +76,8 @@ if __name__ == "__main__":
                                                             RANGE_LOSS2,
                                                             RANGE_LOSS3))
         if (epoch % config.save_evry) == 0:
-            th.save(model, dir_name + '/' + str(config.model) + config.save_name + '.pth')
+            th.save(model, dir_name + '/' + str(config.model) + config.save_name +
+                    '_' + str(epoch) + 'epoch'+ '.pth')
 
         epoch += 1
 
