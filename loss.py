@@ -4,6 +4,7 @@ from torch.nn import functional as F
 
 def ELBO(x, prior_mu, prior_std, enc_mu, enc_std, dec_mu, dec_std, device='cuda', nll_type='bernoulli'):
 
+    resample = False
 
     kld_loss = _kld_gauss(enc_mu, enc_std, prior_mu, prior_std)
 
@@ -12,9 +13,11 @@ def ELBO(x, prior_mu, prior_std, enc_mu, enc_std, dec_mu, dec_std, device='cuda'
 
     loss = kld_loss + nll_loss
 
-    return loss, kld_loss, nll_loss
+    return loss, kld_loss, nll_loss, resample
 
 def IWAE(x, prior_mu, prior_std, enc_mu, enc_std, dec_mu, dec_std, n_samples, device='cuda', nll_type='bernoulli'):
+
+    resample = False
 
     nll_loss = _nll_loss(x=x.repeat(n_samples, 1), params=dec_mu, nll_type=nll_type) # batch * n_samples
     kld_loss = _kld_gauss(enc_mu, enc_std, prior_mu, prior_std) # batch * 1
@@ -24,7 +27,7 @@ def IWAE(x, prior_mu, prior_std, enc_mu, enc_std, dec_mu, dec_std, n_samples, de
 
     loss = th.sum(weight * log_weight, dim=0)
 
-    return loss, kld_loss, th.sum(weight*nll_loss)
+    return loss, kld_loss, th.sum(weight*nll_loss), resample
 
 
 def FIVO(x, prior_mu, prior_std, enc_mu, enc_std, dec_mu, dec_std, n_samples, device='cuda', nll_type='bernoulli'):

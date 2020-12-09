@@ -85,11 +85,11 @@ class VRNN(nn.Module):
                     x_hat_std = self.decoder_std(th.cat([h[:, -1, :]], dim=-1))
 
                 if self.loss_type == "ELBO":
-                    loss_t, kld_t, nll_t = ELBO(x[:, t, :], prior_mu, prior_std, z_mu, z_std, x_hat_mu, dec_std=None,
+                    loss_t, kld_t, nll_t, resample = ELBO(x[:, t, :], prior_mu, prior_std, z_mu, z_std, x_hat_mu, dec_std=None,
                                           device=self.device, nll_type=self.nll_type)
 
                 elif self.loss_type == "IWAE":
-                    loss_t, kld_t, nll_t = IWAE(x[:, t, :], prior_mu, prior_std, z_mu, z_std, x_hat_mu, dec_std=None,
+                    loss_t, kld_t, nll_t, resample = IWAE(x[:, t, :], prior_mu, prior_std, z_mu, z_std, x_hat_mu, dec_std=None,
                                           n_samples=self.n_samples, device=self.device, nll_type=self.nll_type)
 
                 elif self.loss_type == "FIVO":
