@@ -10,7 +10,7 @@ from torch.utils.data import DataLoader
 if __name__ == "__main__":
     parser = ArgumentParser()
 
-    parser.add_argument("--data", type=str, default='piano')
+    parser.add_argument("--data", type=str, default='piano', choices=['nottingham', 'jsb', 'muse', 'piano'])
     parser.add_argument("--model", type=str, default='VRNN')
     parser.add_argument("--loss_type", type=str, default='IWAE')
     parser.add_argument("--n_samples", type=int, default=4)
@@ -34,8 +34,7 @@ if __name__ == "__main__":
 
     print(config, "DEVICE", device)
 
-    if config.data == 'piano':
-        data = read_data('data/pianorolls/piano-midi.de.pkl')
+    data = read_data('data/pianorolls/{}.pkl'.format(config.data))
 
     train_data, test_data = data2seq(data=data, split='train', seq_len=config.seq_len)
 
@@ -80,11 +79,4 @@ if __name__ == "__main__":
                     '_' + str(epoch) + 'epoch'+ '.pth')
 
         epoch += 1
-
-
-
-
-
-
-
 
