@@ -134,16 +134,6 @@ class VRNN(nn.Module):
 
         loss, kld, nll, _, _, _  = self.forward(batch)
 
-        # if loss_type == "ELBO":
-        #     loss, kld, nll = ELBO(batch, prior_mu=prior_mu, prior_std=prior_std, enc_mu=enc_mu, enc_std=enc_std,
-        #                           dec_mu=dec_mu, dec_std=dec_std, device=self.device, nll_type =self.nll_type)
-        #
-        # elif loss_type == "IWAE":
-        #     print("NOT IMPLEMENTED ERROR")
-        #
-        # elif loss_type == "FIVO":
-        #     print("NOT IMPLEMENTED ERROR")
-
         if train:
             self.optimizer.zero_grad()
             loss.backward()
