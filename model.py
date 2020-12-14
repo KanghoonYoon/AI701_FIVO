@@ -121,8 +121,8 @@ class VRNN(nn.Module):
 
     def reparam_sample(self, mu, std):
 
-        mu = mu.repeat(self.batch_size, self.n_samples, 1)
-        std = std.repeat(self.batch_size, self.n_samples, 1)
+        mu = mu.repeat(1, self.n_samples, 1)
+        std = std.repeat(1, self.n_samples, 1)
         eps = th.randn_like(mu)
         eps = Variable(eps)
         z = eps.mul(std).add_(mu)
