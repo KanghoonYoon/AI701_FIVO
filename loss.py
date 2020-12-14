@@ -9,7 +9,7 @@ def ELBO(x, prior_mu, prior_std, enc_mu, enc_std, dec_mu, dec_std, device='cuda'
     kld_loss = _kld_gauss(enc_mu, enc_std, prior_mu, prior_std)
 
     if nll_type == 'bernoulli':
-        nll_loss = _nll_loss(x=x, params=dec_mu, nll_type=nll_type)
+        nll_loss = th.sum(_nll_loss(x, params=dec_mu, nll_type=nll_type))
 
     loss = kld_loss + nll_loss
 
